@@ -1,32 +1,30 @@
 /etc/vdestor/config/.env
 
-# === ОСНОВНЫЕ НАСТРОЙКИ ===
-APP_NAME="VDE Store"
+# Database
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=mysql7648xk-yrsuqk7klp9fujg
+DB_USER=****
+DB_PASSWORD=****
+
+# Application
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://vdestor.ru
 APP_TIMEZONE=Europe/Moscow
 
-# === ПУТИ ===
-CONFIG_PATH=/etc/vdestor/config
-LOG_PATH=/etc/vdestor/logs
-CACHE_PATH=/etc/vdestor/cache
-SESSION_PATH=/etc/vdestor/sessions
-
-# === БЕЗОПАСНОСТЬ ===
-SECURITY_KEY=**** (убран!)
-CSRF_TOKEN_NAME=_vde_token
+# Session
+SESSION_HANDLER=db
+SESSION_LIFETIME=1800
 SESSION_NAME=VDE_SESSION
 
-# === ПРОИЗВОДИТЕЛЬНОСТЬ ===
+# Cache
 CACHE_DRIVER=file
-CACHE_TTL=3600
-MAX_REQUEST_SIZE=10485760
+CACHE_PATH=/tmp/vdestor_cache
 
-# === ЛОГИРОВАНИЕ ===
-LOG_LEVEL=info
-LOG_MAX_FILES=30
-LOG_MAX_SIZE=10485760
+# Paths
+LOG_PATH=/var/log/vdestor
+CONFIG_PATH=/etc/vdestor/config
 
 /etc/vdestor/config/app.ini
 [session]
