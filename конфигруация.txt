@@ -1,0 +1,313 @@
+/etc/php/8.1/fpm/php.ini
+
+;;;;;;;;;;;;;;;;;;;
+; Resource Limits ;
+;;;;;;;;;;;;;;;;;;;
+max_execution_time = 0
+max_input_time = 600
+memory_limit = 8192M
+max_input_vars = 100000
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Error handling and logging ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT
+display_errors = Off
+display_startup_errors = Off
+log_errors = On
+error_log = /var/log/php/error.log
+
+;;;;;;;;;;;;;;;;;
+; Data Handling ;
+;;;;;;;;;;;;;;;;;
+post_max_size = 2048M
+
+;;;;;;;;;;;;;;;;
+; File Uploads ;
+;;;;;;;;;;;;;;;;
+file_uploads = On
+upload_max_filesize = 2048M
+max_file_uploads = 1000
+
+[Session]
+session.save_handler = files
+session.save_path = "/var/www/www-root/data/mod-tmp"
+session.gc_maxlifetime = 3600
+session.gc_probability = 1
+session.gc_divisor = 100
+
+[opcache]
+; Добавить в эту секцию:
+opcache.enable=1
+opcache.memory_consumption=2048
+opcache.interned_strings_buffer=128
+opcache.max_accelerated_files=50000
+opcache.validate_timestamps=0
+opcache.revalidate_freq=0
+opcache.fast_shutdown=1
+opcache.enable_cli=1
+opcache.jit_buffer_size=512M
+opcache.jit=tracing
+
+
+/etc/php/8.1/fpm/pool.d/www.conf
+[www]
+user = www-data
+group = www-data
+listen = /run/php/php8.1-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+
+; Оптимизация для 12 ядер
+pm = dynamic
+pm.max_children = 200
+pm.start_servers = 50
+pm.min_spare_servers = 30
+pm.max_spare_servers = 70
+pm.max_requests = 2000
+pm.process_idle_timeout = 30s
+
+; Таймауты
+request_terminate_timeout = 3600
+request_slowlog_timeout = 30s
+slowlog = /var/log/php8.1-fpm-www-slow.log
+
+; PHP настройки
+php_admin_value[memory_limit] = 8192M
+php_admin_value[max_execution_time] = 0
+php_admin_value[error_log] = /var/log/php/www-error.log
+php_flag[display_errors] = off
+
+/etc/php/8.1/fpm/pool.d/www-data.conf
+[www-data]
+pm = dynamic
+pm.max_children = 100
+pm.start_servers = 25
+pm.min_spare_servers = 15
+pm.max_spare_servers = 35
+pm.max_requests = 1000
+
+php_value[error_reporting] = E_ALL & ~E_NOTICE & ~E_STRICT
+php_value[display_errors] = stderr
+php_value[log_errors] = On
+php_admin_value[mbstring.func_overload] = 0
+
+listen = /var/run/php-fpm.www-data.sock
+listen.mode = 0660
+listen.owner = www-data
+listen.group = www-data
+listen.backlog = 512
+
+user = www-data
+group = www-data
+
+request_terminate_timeout = 600
+
+/etc/php/8.1/fpm/pool.d/user.d/www-root.conf
+; Директории
+php_admin_value[upload_tmp_dir] = /var/www/www-root/data/mod-tmp
+php_admin_value[session.save_path] = /var/www/www-root/data/mod-tmp
+
+; Максимальные лимиты для мощного сервера
+php_admin_value[max_execution_time] = 0
+php_admin_value[memory_limit] = 8192M
+php_admin_value[post_max_size] = 2048M
+php_admin_value[upload_max_filesize] = 2048M
+php_admin_value[max_input_vars] = 100000
+php_admin_value[max_input_time] = 600
+php_admin_value[max_file_uploads] = 1000
+
+; Включаем отладку для диагностики
+php_admin_value[error_reporting] = E_ALL
+php_admin_value[display_errors] = On
+php_admin_value[display_startup_errors] = On
+php_admin_value[log_errors] = On
+php_admin_value[error_log] = /var/log/php/www-root-error.log
+
+; OPcache оптимизация
+php_admin_value[opcache.enable] = 1
+php_admin_value[opcache.memory_consumption] = 2048
+php_admin_value[opcache.max_accelerated_files] = 50000
+php_admin_value[opcache.validate_timestamps] = 0
+php_admin_value[opcache.revalidate_freq] = 0
+
+; Реальный путь кеш
+php_admin_value[realpath_cache_size] = 4096K
+php_admin_value[realpath_cache_ttl] = 600
+
+
+/etc/php/8.1/fpm/pool.d/pool.d/vdestor.ru.conf
+[vdestor.ru]
+; Оптимизация для основного сайта
+pm = dynamic
+pm.max_children = 150
+pm.start_servers = 30
+pm.min_spare_servers = 20
+pm.max_spare_servers = 50
+pm.process_idle_timeout = 60s
+pm.max_requests = 2000
+
+listen = /var/www/php-fpm/1.sock
+listen.mode = 0660
+listen.owner = www-root
+listen.group = www-data
+listen.backlog = 1024
+
+user = www-root
+group = www-root
+chdir = /
+
+; Таймауты для тяжелых операций
+request_terminate_timeout = 3600
+request_slowlog_timeout = 30s
+slowlog = /var/log/php8.1-fpm-vdestor-slow.log
+
+; Включаем конфиги
+include = /etc/php/8.1/fpm/pool.d/site.d/vdestor.ru.conf
+include = /etc/php/8.1/fpm/pool.d/user.d/www-root.conf
+
+
+/etc/nginx/nginx.conf
+user www-data;
+worker_processes 12;  # По количеству ядер
+worker_rlimit_nofile 65535;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+    worker_connections 4096;
+    use epoll;
+    multi_accept on;
+}
+
+http {
+    # --- Зона лимита для API ---
+    limit_req_zone $binary_remote_addr zone=api:10m rate=100r/s;  # Увеличил лимит
+    
+    # --- Основные настройки ---
+    sendfile                        on;
+    tcp_nopush                      on;
+    tcp_nodelay                     on;
+    
+    # Таймауты
+    client_header_timeout           60s;
+    client_body_timeout             60s;
+    send_timeout                    600s;
+    keepalive_timeout               65;
+    keepalive_requests              1000;
+    reset_timedout_connection       on;
+    
+    # Буферы для мощного сервера
+    client_header_buffer_size       8k;
+    client_body_buffer_size         512k;
+    client_max_body_size            2048m;
+    large_client_header_buffers     8 32k;
+    
+    # Хеши
+    server_tokens                   off;
+    server_name_in_redirect         off;
+    server_names_hash_max_size      2048;
+    server_names_hash_bucket_size   128;
+    types_hash_max_size             2048;
+    types_hash_bucket_size          128;
+    
+    # --- Proxy настройки ---
+    proxy_redirect          off;
+    proxy_set_header        Host            $host;
+    proxy_set_header        X-Real-IP       $remote_addr;
+    proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_pass_header       Set-Cookie;
+    proxy_connect_timeout   600;
+    proxy_send_timeout      600;
+    proxy_read_timeout      600;
+    proxy_buffer_size       128k;
+    proxy_buffers           8 128k;
+    proxy_busy_buffers_size 256k;
+    proxy_temp_file_write_size 256k;
+    proxy_max_temp_file_size 0;
+    
+    # FastCGI настройки для PHP
+    fastcgi_buffers         256 32k;
+    fastcgi_buffer_size     256k;
+    fastcgi_busy_buffers_size 512k;
+    fastcgi_temp_file_write_size 512k;
+    fastcgi_intercept_errors on;
+    fastcgi_connect_timeout 600;
+    fastcgi_send_timeout    600;
+    fastcgi_read_timeout    600;
+    
+    # Кеш открытых файлов
+    open_file_cache         max=10000 inactive=60s;
+    open_file_cache_valid   120s;
+    open_file_cache_min_uses 2;
+    open_file_cache_errors  on;
+    
+    # MIME types
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    # SSL
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:50m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+    
+    # Логи
+    access_log /var/log/nginx/access.log;
+    error_log  /var/log/nginx/error.log;
+    
+    # --- Gzip настройки ---
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_disable "msie6";
+    gzip_min_length 256;
+    gzip_buffers 16 8k;
+    gzip_http_version 1.1;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/json
+        application/javascript
+        application/xml+rss
+        application/atom+xml
+        application/rss+xml
+        application/xhtml+xml
+        application/x-font-ttf
+        application/x-font-opentype
+        application/vnd.ms-fontobject
+        image/svg+xml
+        image/x-icon
+        font/opentype
+        font/ttf
+        font/eot
+        font/otf;
+    
+    # Включаем конфиги
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+    include /etc/nginx/vhosts/*/*.conf;
+    
+    # Дефолтный сервер (оставляем как есть)
+    server {
+        server_name localhost;
+        disable_symlinks if_not_owner;
+        listen 80;
+        listen [::]:80;
+        include /etc/nginx/vhosts-includes/*.conf;
+        location @fallback {
+            error_log /dev/null crit;
+            proxy_pass http://127.0.0.1:8080;
+            proxy_redirect http://127.0.0.1:8080 /;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            access_log off;
+        }
+    }
+}

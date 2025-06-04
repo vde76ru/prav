@@ -1,0 +1,145 @@
+/etc/vdestor/config/.env
+
+# === ОСНОВНЫЕ НАСТРОЙКИ ===
+APP_NAME="VDE Store"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://vdestor.ru
+APP_TIMEZONE=Europe/Moscow
+
+# === ПУТИ ===
+CONFIG_PATH=/etc/vdestor/config
+LOG_PATH=/etc/vdestor/logs
+CACHE_PATH=/etc/vdestor/cache
+SESSION_PATH=/etc/vdestor/sessions
+
+# === БЕЗОПАСНОСТЬ ===
+SECURITY_KEY=**** (убран!)
+CSRF_TOKEN_NAME=_vde_token
+SESSION_NAME=VDE_SESSION
+
+# === ПРОИЗВОДИТЕЛЬНОСТЬ ===
+CACHE_DRIVER=file
+CACHE_TTL=3600
+MAX_REQUEST_SIZE=10485760
+
+# === ЛОГИРОВАНИЕ ===
+LOG_LEVEL=info
+LOG_MAX_FILES=30
+LOG_MAX_SIZE=10485760
+
+/etc/vdestor/config/app.ini
+[session]
+save_handler=db
+gc_maxlifetime=1800
+cookie_secure=true
+cookie_httponly=true
+cookie_samesite=Lax
+name=VDE_SESSION
+table=sessions
+regenerate_interval=1800
+session_regenerate_id=true
+session_use_strict_mode=true
+
+[security]
+max_login_attempts=5
+lockout_duration=900
+password_min_length=8
+password_require_special=true
+csrf_token_lifetime=3600
+rate_limit_requests=60
+rate_limit_window=60
+rate_limit_by_ip=true
+suspicious_activity_log=true
+two_factor_auth=false
+
+[cache]
+driver=file
+default_ttl=3600
+prefix=vde_
+compress=true
+cache_serializer=igbinary
+cache_compression_level=6
+
+[redis]
+host=127.0.0.1
+port=6379
+password=*****(заглушка!)
+database=0
+timeout=5
+read_timeout=5
+max_connections=100
+retry_attempts=3
+
+[email]
+driver=smtp
+host=smtp.yandex.ru
+port=587
+username=vde76ru@yandex.ru
+password=your_app_password (заглушка!)
+encryption=tls
+from_address=vde76ru@yandex.ru
+from_name="VDE Store"
+
+[logging]
+channels[]=file
+channels[]=database
+max_file_size=10485760
+max_files=30
+compress_rotated
+
+
+
+/etc/vdestor/config/config.php
+<?php
+return [
+    'db' => [
+        'host' => 'localhost',
+        'username' => *****(заглушка!)
+        'password' => *****(заглушка!)
+        'dbname' => ******(заглушка!)
+    ]
+];
+?>
+
+
+/etc/vdestor/config/config_app.ini
+[session]
+save_handler    = db
+gc_maxlifetime  = 1800
+cookie_secure   = true
+cookie_httponly = true
+cookie_samesite = Lax
+name            = MYSESSID
+
+
+
+[redis]
+host     = 127.0.0.1
+port     = 6379
+password = ******(заглушка!)
+database = 0
+
+/etc/vdestor/config/database.ini
+[mysql]
+host=localhost
+port=3306
+user=****(заглушка!)
+password=****(заглушка!)
+database=****(заглушка!)
+charset=utf8mb4
+
+/etc/vdestor/config/generate_hash.php
+
+<?php
+// /var/www/www-root/data/site/vdestor.ru/tools/generate_hash.php
+
+// Задаём пароль вручную:
+$plainPassword = *******;  
+
+// Генерируем Bcrypt-хэш (cost по умолчанию = 10)
+$hash = password_hash($plainPassword, PASSWORD_BCRYPT);
+
+// Выводим его в консоль
+echo "Ваш Bcrypt-хэш:\n" . $hash . "\n";
+
